@@ -1,0 +1,250 @@
+---
+title: "PREDICTIVE MODEL BUILDING USING LINEAR REGRESSION ANALYSIS"
+author: "AGNIVA KONAR, UPASYA BOSE, TIYASHA SAMANTA"
+date: "29/08/2021"
+output: html_document
+---
+
+```{r echo= TRUE, message= FALSE, warning= FALSE}
+library(readxl)
+library(qpcR)
+library(car)
+library(carData)
+library(nlme)
+library(lmtest)
+library(BSDA)
+library(MASS)
+library(ROCR)
+library(writexl)
+library(WriteXLS)
+library(caTools)
+```
+The necessary packages are installed.
+```{r}
+data=read_excel(file.choose())
+View(data)
+df=data[,-c(1,3,5,8,10,12,14,16,18,20,22,28,30,32,34,36,38,40,42,44,46,48,50,53,57,68,71,74,76,79,83,90,94,96)]
+View(df)
+dim(df)
+```
+The unnecessary columns,i.e., the columns which had maximum number of single type observations and the columns which had non numeric data, are dropped from the previous dataset. The new dataset is named as "df". This dataset contains only numeric data which will be useful for further calculations. This new dataset contains 1379 rows of data and 64 columns.
+
+Now, we name the variables accordingly for our ease and create a new dataframe.
+```{r}
+#naming the response variable and the covariates
+y=df$SalePrice
+x1=df$`MSSubClass Indicator`
+x2=df$`MSZoning Indicator`
+x3=df$`LotFrontage Converted`
+x4=df$LotArea
+x5=df$`Alley Indicator`
+x6=df$`LotShape Indicator`
+x7=df$`LandContour Indicator`
+x8=df$`LotConfig Indicator`
+x9=df$`Neighbourhood Indicator`
+x10=df$`Condition1 Indicator`
+x11=df$`BldgType Indicator`
+x12=df$`HouseStyle Indicator`
+x13=df$OverallQual
+x14=df$OverallCond
+x15=df$YearBuilt
+x16=df$YearRemodAdd
+x17=df$`RoofStyle Indicator`
+x18=df$`Exterior1st Indicator`
+x19=df$`Exterior2nd Indicator`
+x20=df$`MasVnrType Indicator`
+x21=df$`MasVnrArea Converted`
+x22=df$`ExterQual Indicator`
+x23=df$`ExterCond Indicator`
+x24=df$`Foundation Indicator`
+x25=df$`BsmtQual Indicator`
+x26=df$`BsmtCond Indicator`
+x27=df$`BsmtExposure Indicator`
+x28=df$`BsmtFinType1 Indicator`
+x29=df$BsmtFinSF1
+x30=df$`BsmtFinType2 Indicator`
+x31=df$BsmtFinSF2
+x32=df$BsmtUnfSF
+x33=df$`Electrical Indicator`
+x34=df$`1stFlrSF`
+x35=df$`2ndFlrSF`
+x36=df$LowQualFinSF
+x37=df$BsmtFullBath
+x38=df$BsmtHalfBath
+x39=df$FullBath
+x40=df$HalfBath
+x41=df$BedroomAbvGr
+x42=df$KitchenAbvGr
+x43=df$`KitchenQual Indicator`
+x44=df$TotRmsAbvGrd
+x45=df$`Functional Indicator`
+x46=df$Fireplaces
+x47=df$`FireplaceQU Indicator`
+x48=df$`GarageType Indicator`
+x49=df$GarageYrBlt
+x50=df$`GarageFinish Indicator`
+x51=df$GarageCars
+x52=df$GarageArea
+x53=df$`PavedDrive Indicator`
+x54=df$WoodDeckSF
+x55=df$OpenPorchSF
+x56=df$EnclosedPorch
+x57=df$`3SsnPorch`
+x58=df$ScreenPorch
+x59=df$`Fence Indicator`
+x60=df$MoSold
+x61=df$YrSold
+x62=df$`SaleType Indicator`
+x63=df$`SaleCondition Indicator`
+
+df1=data.frame(y,x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16,x17,x18,x19,x20,x21,x22,x23,x24,x25,x26,x27,x28,x29,x30,x31,x32,x33,x34,x35,x36,x37,x38,x39,x40,x41,x42,x43,x44,x45,x46,x47,x48,x49,x50,x51,x52,x53,x54,x55,x56,x57,x58,x59,x60,x61,x62,x63)
+```
+
+After the original dataset is imported, we need to split it into two datasets, naming them as, train and test dataset. And this splitting must be done randomly, in the ratio of 70:30. We need to build our predictive model based on the train dataset and evaluate the model based on the testing dataset.
+```{r}
+set.seed(100)
+
+traindf=sort(sample(nrow(df1),nrow(df1)*0.7)) #randomly picking 70% of the observations from our data set to form the training data
+
+train=df1[traindf,] #new training data set
+test=df1[-traindf,] #new testing data set
+
+rownames(train)=1:nrow(train) #changing the indexes of the train dataset
+rownames(test)=1:nrow(test) #changing the indexes of the test dataset
+
+#omitting if any NA values are present
+train_new=na.omit(train) 
+test_new=na.omit(test)
+
+dim(train_new)
+dim(test_new)
+
+View(train_new)
+View(test_new)
+```
+We create a primary linear model based on the train dataset.
+```{r}
+model=lm(y~x1+x2+x3+x4+x5+x6+x7+x8+x9+x10+x11+x12+x13+x14+x15+x16+x17+x18+x19+x20+x21+x22+x23+x24+x25+x26+x27+x28+x29+x30+x31+x32+x33+x34+x35+x36+x37+x38+x39+x40+x41+x42+x43+x44+x45+x46+x47+x48+x49+x50+x51+x52+x53+x54+x55+x56+x57+x58+x59+x60+x61+x62+x63, data = train_new)
+
+summary(model)
+RSS(model)
+AIC(model)
+```
+Now that we have splitted our dataset into train and test, we must proceed with our model building using train dataset. But, before moving with our model building, we must remove the impurities, such as outliers, influential observations and high leverage values from the train dataset. This process is called Data Cleansing. While performing data cleansing, we must make sure that we don't lose too much information in this process.
+
+We use Cook's Distance to find out the influential observations from the data.
+```{r}
+cook = cooks.distance(model)
+c = cook[cook>(4/953)] #sorting out potential influential observations.
+c
+length(c) #total no. of potential influential observations.
+```
+We know, that the potential influential observations are the values that have Cook's distance more than (4/n), where n is the no. of observations, that is 953 in this case.
+
+To find out the outliers from our data, the concept of Studentized residual is used.
+```{r}
+student = studres(model)
+s = student[abs(student)>3] #sorting out the potential outliers
+s
+length(s) #total no. of potential outliers.
+```
+The observations, for which the absolute value of the studentized residual is greater than 3, gets the tag of being a potential outlier.
+
+We use the concept of Hat Matrix and Hat Values to find out the high leverage values from the data.
+```{r}
+hat = hatvalues(model)
+h = hat[hat>(189/953)] #sorting out the potential high leverage values
+h
+length(h) #total no. of potential high leverage values.
+```
+We know, that the potential high leverage values are the values that have hat values more than (3p/n), where n is the no. of observations, that is 953 in this case and p is the no. of covariates, that is 63 in this case.
+
+Now that we have found out the anomalies in the data, we need to remove them tactically.
+```{r}
+influential=as.numeric(names(c)) #storing the indexes of the values that are influential observations
+outliers=as.numeric(names(s)) #storing the indexes of the values that are outliers
+highleverage=as.numeric(names(h)) #storing the indexes of the values that are high leverage values
+
+a=intersect(influential,outliers) 
+b=intersect(outliers,highleverage) 
+c=intersect(highleverage,influential)
+d=intersect(influential,b) #common values in all three of them
+
+a
+b
+c
+d
+```
+Now that we have found out the data impurities, which is 20 in our case. We remove them from the train dataset and create a clean dataset. We also remove the NA values from the data, if any. Based on this dataset, we carry out our further modeling.
+```{r}
+train_new1=train_new[-c(a,c),] #creating a new dataframe after data cleansing
+train_new2=na.omit(train_new1)
+
+dim(train_new2)
+View(train_new2)
+```
+Now that we have a cleaned data set, we create a new linear model and check for its efficiency.
+```{r}
+model1=lm(y~x1+x2+x3+x4+x5+x6+x7+x8+x9+x10+x11+x12+x13+x14+x15+x16+x17+x18+x19+x20+x21+x22+x23+x24+x25+x26+x27+x28+x29+x30+x31+x32+x33+x34+x35+x36+x37+x38+x39+x40+x41+x42+x43+x44+x45+x46+x47+x48+x49+x50+x51+x52+x53+x54+x55+x56+x57+x58+x59+x60+x61+x62+x63, data = train_new2)
+
+summary(model1)
+RSS(model1)
+AIC(model1)
+```
+We see that the adjusted R Square value increases a bit and at the same time the AIC value drops down as well. This indicates that our model has improved a bit.
+
+Now we check for the normality assumption of this model. We will use histogram and QQPlot to check for normality.
+```{r}
+qqPlot(model1$residuals)
+```
+From the QQPlot, we can observe that the quantiles of the data was moderately fitting with the quantiles of a normal data.
+
+Hence the normality assumption is restored.
+
+Now, we check for autocorrelation. We use Durbin Watson Test to check this.
+```{r}
+dwtest(model1)
+```
+The Value of the test statistic is nearly equals to 2, which suggests that there is no autocorrelation is the dataset. This conclusion is evident even from the p value of the test. The null hypothesis of the test is that there is no autocorrelation and since the p value of the test turns out to be greater than 0.05 (5% level of significance) and hence, null hypothesis is accepted.
+
+Now, we need to check if our data is homoscedastic or not. We use Breusch Pagan test to check for homoscedasticity in our dataset.
+```{r}
+bptest(model1)
+```
+The p value of the test turns out to be much lesser than 0.05 and hence that suggests our data is heteroscedastic. Hence, we need to find some other method to solve this issue.
+
+Now, we need to check for multicollinearity in the dataset. We use Variance Inflation Factor to check which covariates have high multicollinearity.
+```{r}
+vif(model1)
+```
+We find out that the VIF value each and every covariates are lesser than 10, which indicates that there is moderate multicollinearity present in the model which isn't an issue. Thus we can proceed further with our predictive model building.
+
+But still, the issue of heteroscedasticity still persists. And hence, we need to use the GLS function to solve this issue.
+```{r}
+model2=gls(y~x1+x2+x3+x4+x5+x6+x7+x8+x9+x10+x11+x12+x13+x14+x15+x16+x17+x18+x19+x20+x21+x22+x23+x24+x25+x26+x27+x28+x29+x30+x31+x32+x33+x34+x35+x36+x37+x38+x39+x40+x41+x42+x43+x44+x45+x46+x47+x48+x49+x50+x51+x52+x53+x54+x55+x56+x57+x58+x59+x60+x61+x62+x63,data = train_new2,correlation = corAR1())
+
+summary(model2)
+```
+After passing the model as a parameter to the summary(), we found out that the covariates x3,x4,x5,x12,x13,x14,x15,x17,x18,x20,x21,x22,x26,x27,x29,x31,x32,x34,x35,x41,x42,x43,x45,x47,x48,x63 are the significant covariates.
+
+Thus, LotFrontage, LotArea, Alley, Housestyle, OverallQual, OverallCond, YearBuilt, RoofStyle, Exterior1st, MasVnrType, MasVnrArea, ExterQual, BsmtCond, BsmtExposure, BsmtFinSF1, BsmtFinSF2, BsmtUnfSF, 1stFlrSF, 2ndFlrSF, BedroomAbvGr, KitchenAbvGr, KitchenQual, Functional, FireplaceQU, GarageType, SaleCondition are our significant factors in determining the price of the house.
+
+Hence, we need to build our predictive model based on these covariates.
+Hence, our predictive model is given by:-
+```{r}
+model3=gls(y~x3+x4+x5+x12+x13+x14+x15+x17+x18+x20+x21+x22+x26+x27+x29+x31+x32+x34+x35+x41+x42+x43+x45+x47+x48+x63, data = train_new2, correlation = corAR1())
+
+model3
+```
+```{r}
+pred=predict(model3,test_new)
+pred
+length(pred)
+```
+Now, we need to compare our predicted values with the original values to check the efficiency of the model and to make a comment on how good our fit is.
+```{r echo=TRUE}
+plot(test_new$y,type="l",lty=1.8,col="red")
+lines(pred,type="l",lty=1.8,col="blue")
+```
+
+As we can see, that our original values and predicted values overlap with each other most of the times and hence, we can conclude that our model fitting was moderate.
